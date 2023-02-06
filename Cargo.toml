@@ -1,0 +1,30 @@
+[package]
+name = "retry"
+version = "0.1.0"
+edition = "2021"
+authors = ["Eric Crosson <eric.s.crosson@utexas.edu>"]
+license = "MIT OR Apache-2.0"
+description = "CLI to retry a command until it succeeds"
+readme = "README.md"
+homepage = "https://github.com/EricCrosson/retry"
+keywords = ["cli", "retry"]
+categories = ["command-line-utilities"]
+exclude = [
+  "/.envrc",
+  "/.github",
+  "/.gitignore",
+  "/flake.{lock,nix}"
+]
+
+[[bin]]
+name = "retry"
+
+[dependencies]
+clap = { version = "=4.1.4", features = ["cargo", "derive", "wrap_help"] }
+duration-string = { version = "=0.2.0", default-features = false }
+tokio = { version = "=1.25.0", features = ["full", "macros", "process", "time"] }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
