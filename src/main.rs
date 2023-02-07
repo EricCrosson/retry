@@ -101,8 +101,5 @@ async fn run_tasks(
 #[tokio::main]
 async fn main() -> Result<()> {
     let args: Cli = Cli::parse();
-    // DEBUG:
-    println!("{:#?}", args);
-
     run_tasks(args.command, args.up_to, args.task_timeout).await
 }
