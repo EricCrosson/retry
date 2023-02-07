@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/EricCrosson/retry/compare/v1.0.0...v1.0.1) (2023-02-07)
+
+
+### Bug Fixes
+
+* remove debug statement ([5ab48ea](https://github.com/EricCrosson/retry/commit/5ab48ea15812708107699685d34ec993942f93a8))
+
 # 1.0.0 (2023-02-07)
 
 
