@@ -7,9 +7,6 @@ use std::{process::ExitStatus, time::Duration};
 
 use clap::Parser;
 use cli::Cli;
-/// DISCUSS: --up-to 2m
-// What I'm driving at here is you can create impossible scenarios when you specify _both_ time and repeats.
-// Is there utility in only accepting one?
 use tokio::process::Command;
 
 mod cli;
