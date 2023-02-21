@@ -1,9 +1,13 @@
 # retry
 
+[![Build Status]](https://github.com/EricCrosson/retry/actions/workflows/release.yml)
+
+[build status]: https://github.com/EricCrosson/retry/actions/workflows/release.yml/badge.svg?event=push
+
 **retry** helps you retry a shell command until it succeeds.
 It was written to make one-liners as readable and intuitive as possible.
 
-##  Use
+## Use
 
 The "big idea" of **retry** is that it eliminates ambiguous inputs by accepting either the number of times to try a command or the total length of time to spend (re)trying it.
 
