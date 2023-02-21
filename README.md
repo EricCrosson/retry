@@ -14,8 +14,8 @@ The "big idea" of **retry** is that it eliminates ambiguous inputs by accepting 
 For example:
 
 ```bash
-retry --up-to 5x npm install
-retry --up-to 10s npm install
+retry --up-to 5x npm install  # Retry for up to 5 times "npm install"
+retry --up-to 10s npm install # Retry for up to 10 seconds "npm install"
 ```
 
 To constrain the total runtime of an individual attempt, use `--task-timeout`:
