@@ -32,6 +32,10 @@
       # Common derivation arguments used for all builds
       commonArgs = {
         src = craneLib.cleanCargoSource ./.;
+
+        nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.isDarwin [
+          pkgs.libiconv
+        ];
       };
 
       # Build *just* the cargo dependencies, so we can reuse
