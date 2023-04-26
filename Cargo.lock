@@ -335,7 +335,7 @@ dependencies = [
 
 [[package]]
 name = "retry"
-version = "1.0.17"
+version = "1.0.18"
 dependencies = [
  "clap",
  "duration-string",
