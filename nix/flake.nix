@@ -25,23 +25,7 @@
     ];
   in {
     checks = forEachSystem (system: let
-      overlay = next: prev: {
-        inherit
-          (prev.callPackage ../default.nix {
-            pkgs = prev;
-            craneLib = crane.lib.${system};
-          })
-          myCrate
-          myCrateClippy
-          myCrateCoverage
-          ;
-      };
-
-      pkgs = import nixpkgs {
-        inherit system;
-        overlays = [overlay];
-      };
-
+      craneDerivations = nixpkgs.legacyPackages.${system}.callPackage ./default.nix {inherit crane;};
       pre-commit-check = pre-commit-hooks.lib.${system}.run {
         src = ../.;
         hooks = {
@@ -53,7 +37,7 @@
       };
     in {
       inherit
-        (pkgs)
+        (craneDerivations)
         myCrate
         myCrateClippy
         myCrateCoverage

@@ -1,10 +1,13 @@
 {
   pkgs,
-  craneLib,
+  system,
+  crane,
 }: let
+  craneLib = crane.lib.${system};
+
   # Common derivation arguments used for all builds
   commonArgs = {
-    src = craneLib.cleanCargoSource ./.;
+    src = craneLib.cleanCargoSource ../.;
 
     nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.isDarwin [
       pkgs.libiconv

@@ -20,22 +20,11 @@
     ];
   in {
     packages = forEachSystem (system: let
-      overlay = next: prev: {
-        inherit
-          (prev.callPackage ./default.nix {
-            pkgs = prev;
-            craneLib = crane.lib.${system};
-          })
-          myCrate
-          ;
-      };
-
-      pkgs = import nixpkgs {
-        inherit system;
-        overlays = [overlay];
+      craneDerivations = nixpkgs.legacyPackages.${system}.callPackage ./nix/default.nix {
+        inherit crane;
       };
     in {
-      default = pkgs.myCrate;
+      default = craneDerivations.myCrate;
     });
   };
 }
