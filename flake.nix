@@ -20,33 +20,22 @@
     ];
   in {
     packages = forEachSystem (system: let
+      overlay = next: prev: {
+        inherit
+          (prev.callPackage ./default.nix {
+            pkgs = prev;
+            craneLib = crane.lib.${system};
+          })
+          myCrate
+          ;
+      };
+
       pkgs = import nixpkgs {
         inherit system;
+        overlays = [overlay];
       };
-
-      craneLib = crane.lib.${system};
-
-      # Common derivation arguments used for all builds
-      commonArgs = {
-        src = craneLib.cleanCargoSource ./.;
-
-        nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.isDarwin [
-          pkgs.libiconv
-        ];
-      };
-
-      # Build *just* the cargo dependencies, so we can reuse
-      # all of that work (e.g. via cachix) when running in CI
-      cargoArtifacts = craneLib.buildDepsOnly commonArgs;
-
-      # Build the actual crate itself, reusing the dependency
-      # artifacts from above.
-      myCrate = craneLib.buildPackage (commonArgs
-        // {
-          inherit cargoArtifacts;
-        });
     in {
-      default = myCrate;
+      default = pkgs.myCrate;
     });
   };
 }
