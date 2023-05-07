@@ -76,6 +76,7 @@
           actionlint.enable = true;
           alejandra.enable = true;
           prettier.enable = true;
+          rustfmt.enable = true;
         };
       };
     in {
@@ -90,8 +91,12 @@
       };
       devShells = {
         default = nixpkgs.legacyPackages.${system}.mkShell {
-          nativeBuildInputs = [
-            pkgs.cargo
+          nativeBuildInputs = with pkgs; [
+            cargo
+            clippy
+            rust-analyzer
+            rustc
+            rustfmt
           ];
 
           inherit (self.checks.${system}.pre-commit-check) shellHook;
