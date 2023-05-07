@@ -24,7 +24,7 @@ enum TaskOutcome {
     Timeout,
 }
 
-async fn eval(command: &Vec<String>) -> Result<ExitStatus> {
+async fn eval(command: &[String]) -> Result<ExitStatus> {
     // FIXME: kill in a way that guarantees reaping the child:
     // https://docs.rs/tokio/latest/tokio/process/struct.Command.html#caveats
     let mut child = Command::new(command[0].clone());
@@ -36,7 +36,7 @@ async fn eval(command: &Vec<String>) -> Result<ExitStatus> {
     Ok(child.wait().await?)
 }
 
-async fn run_task(command: &Vec<String>, task_timeout: Option<Duration>) -> Result<TaskOutcome> {
+async fn run_task(command: &[String], task_timeout: Option<Duration>) -> Result<TaskOutcome> {
     let status_code = match task_timeout {
         None => eval(command).await?.code(),
         Some(task_timeout) => {
@@ -63,9 +63,9 @@ async fn run_task(command: &Vec<String>, task_timeout: Option<Duration>) -> Resu
     Ok(TaskOutcome::Timeout)
 }
 
-async fn loop_task(command: &Vec<String>, task_timeout: Option<Duration>) -> Result<TaskOutcome> {
+async fn loop_task(command: &[String], task_timeout: Option<Duration>) -> Result<TaskOutcome> {
     loop {
-        let status_code = run_task(&command, task_timeout).await?;
+        let status_code = run_task(command, task_timeout).await?;
         if status_code == TaskOutcome::Success {
             return Ok(TaskOutcome::Success);
         }
