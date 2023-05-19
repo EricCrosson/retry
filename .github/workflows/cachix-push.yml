@@ -17,3 +17,5 @@ jobs:
     uses: EricCrosson/nix-action/.github/workflows/cache.yml@v1
     with:
       cache: ericcrosson
+    secrets:
+      cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
