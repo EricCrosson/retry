@@ -21,7 +21,7 @@ retry --up-to 10s npm install # Retry for up to 10 seconds "npm install"
 To constrain the total runtime of an individual attempt, use `--task-timeout`:
 
 ```bash
-retry --up-to 10m --task-timeout 15s sh -c 'zhu-li --do the-thing'
+retry --up-to 10m --task-timeout 15s -- zhu-li --do the-thing
 ```
 
 ### Argument formats
