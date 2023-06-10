@@ -20,7 +20,7 @@ exclude = [
 name = "retry"
 
 [dependencies]
-clap = { version = "=4.3.2", features = ["cargo", "derive", "wrap_help"] }
+clap = { version = "=4.3.3", features = ["cargo", "derive", "wrap_help"] }
 duration-string = { version = "=0.3.0", default-features = false }
 tokio = { version = "=1.28.2", features = ["full", "macros", "process", "time"] }
 
