@@ -1,3 +1,10 @@
+## [1.0.73](https://github.com/EricCrosson/retry/compare/v1.0.72...v1.0.73) (2024-05-07)
+
+
+### Bug Fixes
+
+* **deps:** update nix flakes ([9d64954](https://github.com/EricCrosson/retry/commit/9d64954d871475426d8369842db1bcc20934327c))
+
 ## [1.0.72](https://github.com/EricCrosson/retry/compare/v1.0.71...v1.0.72) (2024-03-29)
 
 
