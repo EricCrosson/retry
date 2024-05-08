@@ -2,14 +2,27 @@
   pkgs,
   system,
   crane,
+  fenix,
 }: let
-  craneLib = crane.lib.${system};
+  fenix-channel = fenix.packages.${system}.latest;
+  fenix-toolchain = fenix-channel.withComponents [
+    "cargo"
+    "clippy"
+    "rust-analyzer"
+    "rust-src"
+    "rustc"
+    "rustfmt"
+  ];
+
+  craneLib = crane.lib.${system}.overrideToolchain fenix-toolchain;
 
   # Common derivation arguments used for all builds
   commonArgs = {
     src = craneLib.cleanCargoSource ../.;
 
     nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.isDarwin [
+      pkgs.darwin.apple_sdk.frameworks.Security
+      pkgs.darwin.apple_sdk.frameworks.SystemConfiguration
       pkgs.libiconv
     ];
   };
@@ -47,8 +60,10 @@
     });
 in {
   inherit
+    commonArgs
     myCrate
     myCrateClippy
     myCrateCoverage
+    fenix-toolchain
     ;
 }
