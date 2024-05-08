@@ -12,7 +12,7 @@ fn duration_from_str(
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Retry {
     ForDuration(Duration),
     NumberOfTimes(u64),
@@ -97,4 +97,61 @@ pub(crate) struct Cli {
     /// ```
     #[arg(help = "The command to run")]
     pub command: Vec<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_retry_from_str_number_of_times() {
+        let input = "3x";
+        let expected = Retry::NumberOfTimes(3);
+        let result = Retry::from_str(input).unwrap();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_retry_from_str_for_duration() {
+        let input = "10s";
+        let expected = Retry::ForDuration(Duration::from_secs(10));
+        let result = Retry::from_str(input).unwrap();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_retry_from_str_invalid_input() {
+        let input = "abc";
+        let result = Retry::from_str(input);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_cli_up_to_retry_from_str() {
+        let input = "3x";
+        let expected = Retry::NumberOfTimes(3);
+        let cli = Cli::parse_from(&["", "--up-to", input]);
+        assert_eq!(cli.up_to, expected);
+    }
+
+    #[test]
+    fn test_cli_task_timeout_duration_from_str() {
+        let input = "5m";
+        let expected = Some(Duration::from_secs(300));
+        let cli = Cli::parse_from(&["", "--task-timeout", input]);
+        assert_eq!(cli.task_timeout, expected);
+    }
+
+    #[test]
+    fn test_cli_command() {
+        let input = vec!["ping", "-c", "1", "google.com"];
+        let expected = input.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        let cli = Cli::parse_from(
+            &["", "--"]
+                .into_iter()
+                .chain(input.into_iter())
+                .collect::<Vec<_>>(),
+        );
+        assert_eq!(cli.command, expected);
+    }
 }
