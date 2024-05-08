@@ -84,6 +84,20 @@ pub(crate) struct Cli {
     #[arg(long, value_parser = duration_from_str, help = "Timeout to enforce on each attempt")]
     pub task_timeout: Option<Duration>,
 
+    /// Exit code to stop on.
+    ///
+    /// Any exit code that matches this value will stop retrying.
+    ///
+    /// Accepted format is:
+    /// [0-9]+
+    ///
+    /// Examples:
+    /// ```
+    /// retry --stop-on-exit-code 2 -- bash -c "exit 2"
+    /// ```
+    #[arg(long, help = "Exit code to stop on")]
+    pub stop_on_exit_code: Option<i32>,
+
     // TODO: enforce this is a non-empty array
     /// The command to run.
     ///

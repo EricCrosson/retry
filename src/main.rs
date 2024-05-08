@@ -36,7 +36,11 @@ async fn eval(command: &[String]) -> Result<ExitStatus> {
     Ok(child.wait().await?)
 }
 
-async fn run_task(command: &[String], task_timeout: Option<Duration>) -> Result<TaskOutcome> {
+async fn run_task(
+    command: &[String],
+    task_timeout: Option<Duration>,
+    stop_on_exit_code: Option<i32>,
+) -> Result<TaskOutcome> {
     let status_code = match task_timeout {
         None => eval(command).await?.code(),
         Some(task_timeout) => {
@@ -58,15 +62,25 @@ async fn run_task(command: &[String], task_timeout: Option<Duration>) -> Result<
         if status_code == 0 {
             return Ok(TaskOutcome::Success);
         }
+
+        if let Some(exit_on_status_code) = stop_on_exit_code {
+            if status_code == exit_on_status_code {
+                return Ok(TaskOutcome::Success);
+            }
+        }
     }
 
     Ok(TaskOutcome::Timeout)
 }
 
-async fn loop_task(command: &[String], task_timeout: Option<Duration>) -> Result<TaskOutcome> {
+async fn loop_task(
+    command: &[String],
+    task_timeout: Option<Duration>,
+    stop_on_exit_code: Option<i32>,
+) -> Result<TaskOutcome> {
     loop {
-        let status_code = run_task(command, task_timeout).await?;
-        if status_code == TaskOutcome::Success {
+        let task_outcome = run_task(command, task_timeout, stop_on_exit_code).await?;
+        if task_outcome == TaskOutcome::Success {
             return Ok(TaskOutcome::Success);
         }
     }
@@ -76,25 +90,29 @@ async fn run_tasks(
     command: Vec<String>,
     up_to: Option<Retry>,
     task_timeout: Option<Duration>,
+    stop_on_exit_code: Option<i32>,
 ) -> Result<()> {
     match up_to {
         Some(Retry::ForDuration(duration)) => {
-            let task_outcome =
-                tokio::time::timeout(duration, loop_task(&command, task_timeout)).await;
+            let task_outcome = tokio::time::timeout(
+                duration,
+                loop_task(&command, task_timeout, stop_on_exit_code),
+            )
+            .await;
             if let Ok(Ok(TaskOutcome::Success)) = task_outcome {
                 return Ok(());
             }
         }
         Some(Retry::NumberOfTimes(num_times)) => {
             for _ in 0..num_times {
-                let task_outcome = run_task(&command, task_timeout).await?;
+                let task_outcome = run_task(&command, task_timeout, stop_on_exit_code).await?;
                 if task_outcome == TaskOutcome::Success {
                     return Ok(());
                 }
             }
         }
         None => loop {
-            let task_outcome = run_task(&command, task_timeout).await?;
+            let task_outcome = run_task(&command, task_timeout, stop_on_exit_code).await?;
             if task_outcome == TaskOutcome::Success {
                 return Ok(());
             }
@@ -107,7 +125,13 @@ async fn run_tasks(
 #[tokio::main]
 async fn main() -> Result<()> {
     let args: Cli = Cli::parse();
-    run_tasks(args.command, args.up_to, args.task_timeout).await
+    run_tasks(
+        args.command,
+        args.up_to,
+        args.task_timeout,
+        args.stop_on_exit_code,
+    )
+    .await
 }
 #[cfg(test)]
 mod tests {
@@ -130,7 +154,7 @@ mod tests {
     #[tokio::test]
     async fn test_run_task_success() {
         let command = vec!["echo".to_string(), "echo_test_run_task_success".to_string()];
-        let task_outcome = run_task(&command, None).await.unwrap();
+        let task_outcome = run_task(&command, None, None).await.unwrap();
         assert_eq!(task_outcome, TaskOutcome::Success);
     }
 
@@ -138,7 +162,7 @@ mod tests {
     async fn test_run_task_timeout() {
         let command = vec!["sleep".to_string(), "10".to_string()];
         let task_timeout = Some(Duration::from_secs(1));
-        let task_outcome = run_task(&command, task_timeout).await.unwrap();
+        let task_outcome = run_task(&command, task_timeout, None).await.unwrap();
         assert_eq!(task_outcome, TaskOutcome::Timeout);
     }
 
@@ -149,7 +173,7 @@ mod tests {
             "echo_test_loop_task_success".to_string(),
         ];
         let task_timeout = Some(Duration::from_secs(5));
-        let task_outcome = loop_task(&command, task_timeout).await.unwrap();
+        let task_outcome = loop_task(&command, task_timeout, None).await.unwrap();
         assert_eq!(task_outcome, TaskOutcome::Success);
     }
 
@@ -161,7 +185,7 @@ mod tests {
         ];
         let up_to = Some(Retry::NumberOfTimes(3));
         let task_timeout = Some(Duration::from_secs(5));
-        let result = run_tasks(command, up_to, task_timeout).await;
+        let result = run_tasks(command, up_to, task_timeout, None).await;
         assert_eq!(result.is_ok(), true);
     }
 
@@ -170,7 +194,22 @@ mod tests {
         let command = vec!["false".to_string()];
         let up_to = Some(Retry::NumberOfTimes(3));
         let task_timeout = Some(Duration::from_secs(5));
-        let result = run_tasks(command, up_to, task_timeout).await;
+        let result = run_tasks(command, up_to, task_timeout, None).await;
         assert_eq!(result.is_err(), true);
+    }
+
+    #[tokio::test]
+    async fn test_run_tasks_stop_on_exit_code() {
+        let command = vec![
+            "bash".to_string(),
+            "-c".to_string(),
+            "\"exit\"".to_string(),
+            "\"2\"".to_string(),
+        ];
+        let up_to = Some(Retry::NumberOfTimes(5));
+        let task_timeout = Some(Duration::from_secs(5));
+        let stop_on_exit_code = Some(2);
+        let result = run_tasks(command, up_to, task_timeout, stop_on_exit_code).await;
+        assert_eq!(result.is_ok(), true);
     }
 }
