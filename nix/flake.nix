@@ -5,6 +5,10 @@
       url = "github:ipetkov/crane";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    fenix = {
+      url = "github:nix-community/fenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     pre-commit-hooks = {
       url = "github:cachix/pre-commit-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -15,6 +19,7 @@
     self,
     nixpkgs,
     crane,
+    fenix,
     pre-commit-hooks,
   }: let
     forEachSystem = nixpkgs.lib.genAttrs [
@@ -25,7 +30,8 @@
     ];
   in {
     checks = forEachSystem (system: let
-      craneDerivations = nixpkgs.legacyPackages.${system}.callPackage ./default.nix {inherit crane;};
+      pkgs = import nixpkgs {inherit system;};
+      craneDerivations = pkgs.callPackage ./default.nix {inherit crane fenix;};
       pre-commit-check = pre-commit-hooks.lib.${system}.run {
         src = ../.;
         hooks = {
@@ -46,17 +52,13 @@
     });
 
     devShells = forEachSystem (system: let
-      pkgs = nixpkgs.legacyPackages.${system};
-      craneDerivations = pkgs.callPackage ./default.nix {inherit crane;};
+      pkgs = import nixpkgs {inherit system;};
+      craneDerivations = pkgs.callPackage ./default.nix {inherit crane fenix;};
     in {
       default = pkgs.mkShell {
-        nativeBuildInputs = with pkgs;
+        packages = with pkgs;
           [
-            cargo
-            clippy
-            rust-analyzer
-            rustc
-            rustfmt
+            craneDerivations.fenix-toolchain
           ]
           ++ craneDerivations.commonArgs.nativeBuildInputs;
 
