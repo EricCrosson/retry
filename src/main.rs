@@ -74,18 +74,18 @@ async fn loop_task(command: &[String], task_timeout: Option<Duration>) -> Result
 
 async fn run_tasks(
     command: Vec<String>,
-    up_to: Retry,
+    up_to: Option<Retry>,
     task_timeout: Option<Duration>,
 ) -> Result<()> {
     match up_to {
-        Retry::ForDuration(duration) => {
+        Some(Retry::ForDuration(duration)) => {
             let task_outcome =
                 tokio::time::timeout(duration, loop_task(&command, task_timeout)).await;
             if let Ok(Ok(TaskOutcome::Success)) = task_outcome {
                 return Ok(());
             }
         }
-        Retry::NumberOfTimes(num_times) => {
+        Some(Retry::NumberOfTimes(num_times)) => {
             for _ in 0..num_times {
                 let task_outcome = run_task(&command, task_timeout).await?;
                 if task_outcome == TaskOutcome::Success {
@@ -93,6 +93,12 @@ async fn run_tasks(
                 }
             }
         }
+        None => loop {
+            let task_outcome = run_task(&command, task_timeout).await?;
+            if task_outcome == TaskOutcome::Success {
+                return Ok(());
+            }
+        },
     };
 
     Err("Command did not succeed within designated bounds".into())
@@ -153,7 +159,7 @@ mod tests {
             "echo".to_string(),
             "echo_test_run_tasks_success".to_string(),
         ];
-        let up_to = Retry::NumberOfTimes(3);
+        let up_to = Some(Retry::NumberOfTimes(3));
         let task_timeout = Some(Duration::from_secs(5));
         let result = run_tasks(command, up_to, task_timeout).await;
         assert_eq!(result.is_ok(), true);
@@ -162,7 +168,7 @@ mod tests {
     #[tokio::test]
     async fn test_run_tasks_failure() {
         let command = vec!["false".to_string()];
-        let up_to = Retry::NumberOfTimes(3);
+        let up_to = Some(Retry::NumberOfTimes(3));
         let task_timeout = Some(Duration::from_secs(5));
         let result = run_tasks(command, up_to, task_timeout).await;
         assert_eq!(result.is_err(), true);

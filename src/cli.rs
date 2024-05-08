@@ -52,8 +52,9 @@ Retry for 100s: retry --up-to 100s ./foo"#,
 
 #[derive(Debug, Parser)]
 pub(crate) struct Cli {
-    // TODO: make this optional to indicate "retry forever"
     /// Retry constraint expressed in number of attempts or total duration.
+    ///
+    /// If omitted, the command will be retried indefinitely.
     ///
     /// Accepted format is:
     /// [0-9]+(x|ns|us|ms|[smhdwy])
@@ -67,7 +68,7 @@ pub(crate) struct Cli {
     /// retry --up-to 10m -- sh -c './download-new-publication && sleep 10s'
     /// ```
     #[arg(long, value_parser = Retry::from_str, help = "Retry constraint expressed in attempts or duration")]
-    pub up_to: Retry,
+    pub up_to: Option<Retry>,
 
     /// Timeout to enforce on each attempt.
     ///
@@ -129,7 +130,7 @@ mod tests {
     #[test]
     fn test_cli_up_to_retry_from_str() {
         let input = "3x";
-        let expected = Retry::NumberOfTimes(3);
+        let expected = Some(Retry::NumberOfTimes(3));
         let cli = Cli::parse_from(&["", "--up-to", input]);
         assert_eq!(cli.up_to, expected);
     }
