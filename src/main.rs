@@ -139,7 +139,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_eval_success() {
-        let command = vec!["echo".to_string(), "echo_test_eval_success".to_string()];
+        let command = vec!["true".to_string()];
         let exit_status = eval(&command).await.unwrap();
         assert_eq!(exit_status.success(), true);
     }
@@ -153,9 +153,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_run_task_success() {
-        let command = vec!["echo".to_string(), "echo_test_run_task_success".to_string()];
+        let command = vec!["true".to_string()];
         let task_outcome = run_task(&command, None, None).await.unwrap();
         assert_eq!(task_outcome, TaskOutcome::Success);
+    }
+
+    #[tokio::test]
+    async fn test_run_task_failure() {
+        let command = vec!["false".to_string()];
+        let task_outcome = run_task(&command, None, None).await.unwrap();
+        assert_eq!(task_outcome, TaskOutcome::Timeout);
     }
 
     #[tokio::test]
@@ -168,10 +175,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_loop_task_success() {
-        let command = vec![
-            "echo".to_string(),
-            "echo_test_loop_task_success".to_string(),
-        ];
+        let command = vec!["true".to_string()];
         let task_timeout = Some(Duration::from_secs(5));
         let task_outcome = loop_task(&command, task_timeout, None).await.unwrap();
         assert_eq!(task_outcome, TaskOutcome::Success);
@@ -179,10 +183,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_run_tasks_success() {
-        let command = vec![
-            "echo".to_string(),
-            "echo_test_run_tasks_success".to_string(),
-        ];
+        let command = vec!["true".to_string()];
         let up_to = Some(Retry::NumberOfTimes(3));
         let task_timeout = Some(Duration::from_secs(5));
         let result = run_tasks(command, up_to, task_timeout, None).await;
@@ -194,6 +195,15 @@ mod tests {
         let command = vec!["false".to_string()];
         let up_to = Some(Retry::NumberOfTimes(3));
         let task_timeout = Some(Duration::from_secs(5));
+        let result = run_tasks(command, up_to, task_timeout, None).await;
+        assert_eq!(result.is_err(), true);
+    }
+
+    #[tokio::test]
+    async fn test_run_tasks_timeout() {
+        let command = vec!["sleep".to_string(), "10".to_string()];
+        let up_to = Some(Retry::ForDuration(Duration::from_secs(5)));
+        let task_timeout = Some(Duration::from_secs(1));
         let result = run_tasks(command, up_to, task_timeout, None).await;
         assert_eq!(result.is_err(), true);
     }
