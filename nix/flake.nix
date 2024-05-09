@@ -45,15 +45,22 @@
       inherit pre-commit-check;
     });
 
-    devShells = forEachSystem (system: {
-      default = nixpkgs.legacyPackages.${system}.mkShell {
-        nativeBuildInputs = with nixpkgs.legacyPackages.${system}; [
-          cargo
-          clippy
-          rust-analyzer
-          rustc
-          rustfmt
-        ];
+    devShells = forEachSystem (system: let
+      pkgs = nixpkgs.legacyPackages.${system};
+      craneDerivations = pkgs.callPackage ./default.nix {inherit crane;};
+    in {
+      default = pkgs.mkShell {
+        nativeBuildInputs = with pkgs;
+          [
+            cargo
+            clippy
+            rust-analyzer
+            rustc
+            rustfmt
+          ]
+          ++ craneDerivations.commonArgs.nativeBuildInputs;
+
+        RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
 
         inherit (self.checks.${system}.pre-commit-check) shellHook;
       };

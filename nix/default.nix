@@ -47,6 +47,7 @@
     });
 in {
   inherit
+    commonArgs
     myCrate
     myCrateClippy
     myCrateCoverage
