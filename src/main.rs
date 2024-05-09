@@ -103,3 +103,78 @@ async fn main() -> Result<()> {
     let args: Cli = Cli::parse();
     run_tasks(args.command, args.up_to, args.task_timeout).await
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_eval_success() {
+        let command = vec!["true".to_owned()];
+        let exit_status = eval(&command).await.unwrap();
+        assert_eq!(exit_status.success(), true);
+    }
+
+    #[tokio::test]
+    async fn test_eval_failure() {
+        let command = vec!["false".to_owned()];
+        let exit_status = eval(&command).await.unwrap();
+        assert_eq!(exit_status.success(), false);
+    }
+
+    #[tokio::test]
+    async fn test_run_task_success() {
+        let command = vec!["true".to_owned()];
+        let task_outcome = run_task(&command, None).await.unwrap();
+        assert_eq!(task_outcome, TaskOutcome::Success);
+    }
+
+    #[tokio::test]
+    async fn test_run_task_failure() {
+        let command = vec!["false".to_owned()];
+        let task_outcome = run_task(&command, None).await.unwrap();
+        assert_eq!(task_outcome, TaskOutcome::Timeout);
+    }
+
+    #[tokio::test]
+    async fn test_run_task_timeout() {
+        let command = vec!["sleep".to_owned(), "10".to_owned()];
+        let task_timeout = Some(Duration::from_secs(1));
+        let task_outcome = run_task(&command, task_timeout).await.unwrap();
+        assert_eq!(task_outcome, TaskOutcome::Timeout);
+    }
+
+    #[tokio::test]
+    async fn test_loop_task_success() {
+        let command = vec!["true".to_owned()];
+        let task_timeout = Some(Duration::from_secs(5));
+        let task_outcome = loop_task(&command, task_timeout).await.unwrap();
+        assert_eq!(task_outcome, TaskOutcome::Success);
+    }
+
+    #[tokio::test]
+    async fn test_run_tasks_success() {
+        let command = vec!["true".to_owned()];
+        let up_to = Retry::NumberOfTimes(3);
+        let task_timeout = Some(Duration::from_secs(5));
+        let result = run_tasks(command, up_to, task_timeout).await;
+        assert_eq!(result.is_ok(), true);
+    }
+
+    #[tokio::test]
+    async fn test_run_tasks_failure() {
+        let command = vec!["false".to_owned()];
+        let up_to = Retry::NumberOfTimes(3);
+        let task_timeout = Some(Duration::from_secs(5));
+        let result = run_tasks(command, up_to, task_timeout).await;
+        assert_eq!(result.is_err(), true);
+    }
+
+    #[tokio::test]
+    async fn test_run_tasks_timeout() {
+        let command = vec!["sleep".to_owned(), "10".to_owned()];
+        let up_to = Retry::ForDuration(Duration::from_secs(5));
+        let task_timeout = Some(Duration::from_secs(1));
+        let result = run_tasks(command, up_to, task_timeout).await;
+        assert_eq!(result.is_err(), true);
+    }
+}
