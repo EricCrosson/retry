@@ -52,7 +52,6 @@ Retry for 100s: retry --up-to 100s ./foo"#,
 
 #[derive(Debug, Parser)]
 pub(crate) struct Cli {
-    // TODO: make this optional to indicate "retry forever"
     /// Retry constraint expressed in number of attempts or total duration.
     ///
     /// Accepted format is:
