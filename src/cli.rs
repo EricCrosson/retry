@@ -1,4 +1,5 @@
-use std::{str::FromStr, time::Duration};
+use std::str::FromStr;
+use tokio::time::Duration;
 
 use clap::Parser;
 use duration_string::DurationString;
@@ -82,6 +83,20 @@ pub(crate) struct Cli {
     #[arg(long, value_parser = duration_from_str, help = "Timeout to enforce on each attempt")]
     pub task_timeout: Option<Duration>,
 
+    /// Exit code to retry on.
+    ///
+    /// Only retry if the command exits with this code.
+    ///
+    /// Accepted format is:
+    /// [0-9]+
+    ///
+    /// Examples:
+    /// ```
+    /// retry --on-exit-code 2 --on-exit-code 127 -- bash -c "exit 2"
+    /// ```
+    #[arg(long, help = "Exit code to retry on")]
+    pub on_exit_code: Option<Vec<i32>>,
+
     // TODO: enforce this is a non-empty array
     /// The command to run.
     ///
@@ -103,7 +118,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_retry_from_str_number_of_times() {
+    fn retry_from_str_number_of_times() {
         let input = "3x";
         let expected = Retry::NumberOfTimes(3);
         let result = Retry::from_str(input).unwrap();
@@ -111,7 +126,7 @@ mod tests {
     }
 
     #[test]
-    fn test_retry_from_str_for_duration() {
+    fn retry_from_str_for_duration() {
         let input = "10s";
         let expected = Retry::ForDuration(Duration::from_secs(10));
         let result = Retry::from_str(input).unwrap();
@@ -119,14 +134,14 @@ mod tests {
     }
 
     #[test]
-    fn test_retry_from_str_invalid_input() {
+    fn retry_from_str_invalid_input() {
         let input = "abc";
         let result = Retry::from_str(input);
         assert!(result.is_err());
     }
 
     #[test]
-    fn test_cli_up_to_retry_from_str() {
+    fn cli_up_to_retry_from_str() {
         let input = "3x";
         let expected = Retry::NumberOfTimes(3);
         let cli = Cli::parse_from(&["", "--up-to", input]);
@@ -134,7 +149,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cli_task_timeout_duration_from_str() {
+    fn cli_task_timeout_duration_from_str() {
         let input = "5m";
         let expected = Some(Duration::from_secs(300));
         let cli = Cli::parse_from(&["", "--task-timeout", input, "--up-to", "1x"]);
@@ -142,7 +157,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cli_command() {
+    fn cli_command() {
         let input = vec!["ping", "-c", "1", "google.com"];
         let expected = input.iter().map(|s| s.to_owned()).collect::<Vec<_>>();
         let cli = Cli::parse_from(
