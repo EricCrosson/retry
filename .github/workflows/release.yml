@@ -17,3 +17,4 @@ jobs:
     uses: semantic-release-action/rust/.github/workflows/release-binary.yml@v5
     with:
       disable-semantic-release-cargo: true
+      toolchain: nightly-2024-05-12
