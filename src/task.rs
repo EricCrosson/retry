@@ -13,9 +13,13 @@ pub(crate) struct Task {
 }
 
 impl Task {
-    pub(crate) fn new(command: Vec<String>, task_timeout: Option<Duration>) -> Self {
+    pub(crate) fn new<C>(command: C, task_timeout: Option<Duration>) -> Self
+    where
+        C: IntoIterator,
+        C::Item: Into<String>,
+    {
         Self {
-            command,
+            command: command.into_iter().map(Into::into).collect(),
             task_timeout,
         }
     }
@@ -58,6 +62,16 @@ pub(crate) enum TaskOutcome {
     TimeoutExceeded,
 }
 
+impl TaskOutcome {
+    #[cfg(test)]
+    fn as_failure(self: &TaskOutcome) -> Option<ExitStatus> {
+        match self {
+            TaskOutcome::Failure(exit_status) => Some(exit_status.to_owned()),
+            _ => None,
+        }
+    }
+}
+
 impl From<Option<ExitStatus>> for TaskOutcome {
     fn from(status: Option<ExitStatus>) -> Self {
         match status {
@@ -83,7 +97,7 @@ mod tests {
 
     #[tokio::test]
     async fn task_success() {
-        let command = vec!["sh".to_string(), "-c".to_string(), "exit 0".to_string()];
+        let command = ["sh", "-c", "exit 0"];
         let task = Task::new(command, None);
         let outcome = task.run().await.unwrap();
         assert_eq!(outcome, TaskOutcome::Success);
@@ -91,25 +105,18 @@ mod tests {
 
     #[tokio::test]
     async fn task_failure() {
-        let command = vec!["sh".to_string(), "-c".to_string(), "exit 144".to_string()];
+        let command = ["sh", "-c", "exit 144"];
         let task = Task::new(command, None);
         let outcome = task.run().await;
-        let outcome_exit_status_code = match outcome {
-            Ok(outcome) => match outcome {
-                TaskOutcome::Failure(exit_status) => match exit_status.code() {
-                    Some(code) => code,
-                    None => panic!("Expected ExitStatus::code() to return Some(_)"),
-                },
-                _ => panic!("Expected TaskOutcome::Failure"),
-            },
-            _ => panic!("Expected Ok(_)"),
-        };
-        assert_eq!(outcome_exit_status_code, 144);
+        let outcome = outcome.expect("task outcome should be ok");
+        let exit_status = outcome.as_failure().expect("task should have failed");
+        let exit_code = exit_status.code().expect("exit code should be defined");
+        assert_eq!(exit_code, 144);
     }
 
     #[tokio::test]
     async fn task_timeout_exceeded() {
-        let command = vec!["sleep".to_string(), "0.05".to_string()];
+        let command = ["sleep", "0.05"];
         let task = Task::new(command, Some(Duration::from_millis(1)));
         let outcome = task.run().await.unwrap();
         assert_eq!(outcome, TaskOutcome::TimeoutExceeded);

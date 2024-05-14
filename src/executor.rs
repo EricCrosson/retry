@@ -57,6 +57,7 @@ where
                         }
                     }
                 }
+                // retry only up_to num_times
                 ExecutionOutcome::Exhausted(ExhaustionReason::RetryTimesExceeded(
                     final_unfinished_reason,
                 ))
@@ -66,7 +67,7 @@ where
                     tokio::time::timeout(duration, self.run_indefinitely()).await;
                 match task_result_or_timeout {
                     Ok(finished_reason) => finished_reason?.into(),
-                    // retry up_to duration exceeded
+                    // retry only up_to duration exceeded
                     Err(_timeout) => ExecutionOutcome::Exhausted(
                         ExhaustionReason::RetryTimeoutExceeded(UnfinishedReason::Timeout),
                     ),

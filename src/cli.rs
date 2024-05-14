@@ -88,7 +88,7 @@ pub(crate) struct Cli {
     /// Only retry if the command exits with this code.
     ///
     /// Accepted format is:
-    /// [0-9]+
+    /// any 32-bit integer
     ///
     /// Examples:
     /// ```

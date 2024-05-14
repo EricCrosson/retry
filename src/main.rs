@@ -13,18 +13,16 @@ mod cli;
 mod decider;
 mod executor;
 mod task;
-mod types;
 
 use crate::cli::Cli;
 use crate::decider::{Decider, UnfinishedReason};
 use crate::executor::{Executable, ExecutionOutcome, Executor, ExhaustionReason};
 use crate::task::Task;
-use crate::types::Result;
 
 // Notable: https://docs.rs/retry/latest/retry/
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::parse();
 
     let task = Task::new(args.command, args.task_timeout);

@@ -10,7 +10,12 @@ pub(crate) enum Decider {
 
 impl Decider {
     pub(crate) fn new(retry_on_exit_codes: Option<Vec<i32>>) -> Self {
-        retry_on_exit_codes.into()
+        match retry_on_exit_codes {
+            Some(retry_on_exit_codes) => Decider::RetryOnExitCodes(RetryOnExitCodesDecider::new(
+                retry_on_exit_codes.into_iter().collect(),
+            )),
+            None => Decider::Default(DefaultDecider::new()),
+        }
     }
 }
 
@@ -25,17 +30,6 @@ impl Decidable for Decider {
         match self {
             Decider::Default(decider) => decider.decide(task_outcome),
             Decider::RetryOnExitCodes(decider) => decider.decide(task_outcome),
-        }
-    }
-}
-
-impl From<Option<Vec<i32>>> for Decider {
-    fn from(retry_on_exit_codes: Option<Vec<i32>>) -> Self {
-        match retry_on_exit_codes {
-            Some(retry_on_exit_codes) => Decider::RetryOnExitCodes(RetryOnExitCodesDecider::new(
-                retry_on_exit_codes.into_iter().collect(),
-            )),
-            None => Decider::Default(DefaultDecider::new()),
         }
     }
 }
@@ -215,10 +209,7 @@ mod tests {
     #[tokio::test]
     async fn retry_on_exit_codes_decider_unfinished_failure() {
         // Arrange
-        let task = Task::new(
-            vec!["sh".to_string(), "-c".to_string(), "exit 2".to_string()],
-            None,
-        );
+        let task = Task::new(["sh", "-c", "exit 2"], None);
         let task_outcome = task.run().await.unwrap();
         let task_outcome_exit_status = match task_outcome {
             TaskOutcome::Failure(exit_status) => exit_status,
@@ -240,10 +231,7 @@ mod tests {
     #[tokio::test]
     async fn retry_on_exit_codes_decider_finished_failure() {
         // Arrange
-        let task = Task::new(
-            vec!["sh".to_string(), "-c".to_string(), "exit 4".to_string()],
-            None,
-        );
+        let task = Task::new(["sh", "-c", "exit 4"], None);
         let task_outcome = task.run().await.unwrap();
         let task_outcome_exit_status = match task_outcome {
             TaskOutcome::Failure(exit_status) => exit_status,
