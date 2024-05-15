@@ -1,3 +1,15 @@
+# [1.1.0](https://github.com/EricCrosson/retry/compare/v1.0.73...v1.1.0) (2024-05-15)
+
+
+### Bug Fixes
+
+* implement PR review feedback from [#82](https://github.com/EricCrosson/retry/issues/82) ([7b13fba](https://github.com/EricCrosson/retry/commit/7b13fbaf3b28d3c2c5099b0a0e8371824bd96e00))
+
+
+### Features
+
+* add `--on-exit-code` ([92a5942](https://github.com/EricCrosson/retry/commit/92a5942b7d52720a05de82cd4c147676c1f8c145))
+
 ## [1.0.73](https://github.com/EricCrosson/retry/compare/v1.0.72...v1.0.73) (2024-05-07)
 
 
