@@ -348,4 +348,26 @@ mod tests {
             ))
         );
     }
+
+    #[tokio::test]
+    async fn execute_retry_every() {
+        // Arrange
+        let number_of_times = 3;
+        let execution_interval = Duration::from_millis(10);
+        let min_expected_duration = execution_interval * (number_of_times - 1);
+        let max_expected_duration = execution_interval * number_of_times;
+        let limit = Limit::NumberOfTimes(number_of_times.into());
+
+        let decider = TestDecider(Decision::Unfinished(UnfinishedReason::Timeout));
+        let mut executor = Executor::new(DummyTask, decider, limit, Some(execution_interval));
+
+        // Act
+        let start = tokio::time::Instant::now();
+        executor.execute().await.unwrap();
+        let elapsed = start.elapsed();
+
+        // Assert
+        assert!(min_expected_duration < elapsed);
+        assert!(elapsed < max_expected_duration);
+    }
 }
