@@ -92,10 +92,22 @@ pub(crate) struct Cli {
     ///
     /// Examples:
     /// ```
-    /// retry --on-exit-code 2 --on-exit-code 127 -- bash -c "exit 2"
+    /// retry --on-exit-code 2 --on-exit-code 127 --up-to 3x -- bash -c "exit 2"
     /// ```
     #[arg(long, help = "Exit code to retry on")]
     pub on_exit_code: Option<Vec<i32>>,
+
+    /// Interval between the start of each attempt.
+    ///
+    /// Accepted format is:
+    /// [0-9]+(ns|us|ms|[smhdwy])
+    ///
+    /// Examples:
+    /// ```
+    /// retry --up-to 3x --every 10s -- bash -c "exit 1"
+    /// ```
+    #[arg(long, value_parser = duration_from_str, help = "Interval between the start of each attempt.")]
+    pub every: Option<Duration>,
 
     // TODO: enforce this is a non-empty array
     /// The command to run.
