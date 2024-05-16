@@ -69,7 +69,7 @@ where
                     Ok(finished_reason) => finished_reason?.into(),
                     // retry only up_to duration exceeded
                     Err(_timeout) => ExecutionOutcome::Exhausted(
-                        ExhaustionReason::RetryTimeoutExceeded(UnfinishedReason::Timeout),
+                        ExhaustionReason::RetryTimeoutExceeded(final_unfinished_reason),
                     ),
                 }
             }
