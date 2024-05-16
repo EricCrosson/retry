@@ -42,9 +42,8 @@ where
     D: Decidable,
 {
     async fn execute(&self) -> std::io::Result<ExecutionOutcome> {
-        let limit = Limit::from(self.limit);
         let mut final_unfinished_reason = UnfinishedReason::Timeout;
-        Ok(match limit {
+        Ok(match self.limit {
             Limit::NumberOfTimes(num_times) => {
                 for _ in 0..num_times {
                     let task_outcome = self.task.run().await?;
