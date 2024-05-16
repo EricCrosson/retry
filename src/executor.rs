@@ -1,12 +1,12 @@
 use std::process::ExitStatus;
 
-use tokio::time::{error::Elapsed, Duration};
+use tokio::time::{Duration, Interval};
 
 use crate::cli::Retry;
 use crate::decider::{Decidable, Decision, FinishedReason, UnfinishedReason};
 use crate::task::Runnable;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub(crate) struct Executor<T, D>
 where
     T: Runnable,
@@ -15,6 +15,7 @@ where
     task: T,
     decider: D,
     limit: Limit,
+    execution_interval: Option<Interval>,
 }
 
 impl<T, D> Executor<T, D>
@@ -22,18 +23,31 @@ where
     T: Runnable,
     D: Decidable,
 {
-    pub(crate) fn new(task: T, decider: D, limit: Limit) -> Self {
+    pub(crate) fn new(
+        task: T,
+        decider: D,
+        limit: Limit,
+        execution_interval: Option<Duration>,
+    ) -> Self {
+        let execution_interval = execution_interval.map(tokio::time::interval);
         Self {
             task,
             decider,
             limit,
+            execution_interval,
+        }
+    }
+
+    async fn tick(&mut self) {
+        if let Some(interval) = &mut self.execution_interval {
+            interval.tick().await;
         }
     }
 }
 
 pub(crate) trait Executable {
-    async fn execute(&self) -> std::io::Result<ExecutionOutcome>;
-    async fn run_indefinitely(&self) -> std::io::Result<FinishedReason>;
+    async fn execute(&mut self) -> std::io::Result<ExecutionOutcome>;
+    async fn run_indefinitely(&mut self) -> std::io::Result<FinishedReason>;
 }
 
 impl<T, D> Executable for Executor<T, D>
@@ -41,11 +55,12 @@ where
     T: Runnable,
     D: Decidable,
 {
-    async fn execute(&self) -> std::io::Result<ExecutionOutcome> {
+    async fn execute(&mut self) -> std::io::Result<ExecutionOutcome> {
         let mut final_unfinished_reason = UnfinishedReason::Timeout;
         Ok(match self.limit {
             Limit::NumberOfTimes(num_times) => {
                 for _ in 0..num_times {
+                    self.tick().await;
                     let task_outcome = self.task.run().await?;
                     let decision = self.decider.decide(task_outcome);
                     match decision {
@@ -62,7 +77,7 @@ where
                 ))
             }
             Limit::ForDuration(duration) => {
-                let task_result_or_timeout: Result<std::io::Result<FinishedReason>, Elapsed> =
+                let task_result_or_timeout =
                     tokio::time::timeout(duration, self.run_indefinitely()).await;
                 match task_result_or_timeout {
                     Ok(finished_reason) => finished_reason?.into(),
@@ -75,8 +90,9 @@ where
         })
     }
 
-    async fn run_indefinitely(&self) -> std::io::Result<FinishedReason> {
+    async fn run_indefinitely(&mut self) -> std::io::Result<FinishedReason> {
         loop {
+            self.tick().await;
             let task_outcome = self.task.run().await?;
             let decision = self.decider.decide(task_outcome);
             match decision {
@@ -167,7 +183,7 @@ mod tests {
         // Arrange
         let decider = TestDecider(Decision::Finished(FinishedReason::Success));
         let limit = Limit::NumberOfTimes(3);
-        let executor = Executor::new(DummyTask, decider, limit);
+        let mut executor = Executor::new(DummyTask, decider, limit, None);
 
         // Act
         let outcome = executor.execute().await.unwrap();
@@ -184,7 +200,7 @@ mod tests {
             failure_exit_status.clone(),
         )));
         let limit = Limit::NumberOfTimes(3);
-        let executor = Executor::new(DummyTask, decider, limit);
+        let mut executor = Executor::new(DummyTask, decider, limit, None);
 
         // Act
         let outcome = executor.execute().await.unwrap();
@@ -201,7 +217,7 @@ mod tests {
             failure_exit_status.clone(),
         )));
         let limit = Limit::NumberOfTimes(3);
-        let executor = Executor::new(DummyTask, decider, limit);
+        let mut executor = Executor::new(DummyTask, decider, limit, None);
 
         // Act
         let outcome = executor.execute().await.unwrap();
@@ -218,7 +234,7 @@ mod tests {
             failure_exit_status.clone(),
         )));
         let limit = Limit::NumberOfTimes(3);
-        let executor = Executor::new(DummyTask, decider, limit);
+        let mut executor = Executor::new(DummyTask, decider, limit, None);
 
         // Act
         let outcome = executor.execute().await.unwrap();
@@ -237,7 +253,7 @@ mod tests {
         // Arrange
         let decider = TestDecider(Decision::Unfinished(UnfinishedReason::Timeout));
         let limit = Limit::NumberOfTimes(3);
-        let executor = Executor::new(DummyTask, decider, limit);
+        let mut executor = Executor::new(DummyTask, decider, limit, None);
 
         // Act
         let outcome = executor.execute().await.unwrap();
@@ -256,7 +272,7 @@ mod tests {
         // Arrange
         let decider = TestDecider(Decision::Finished(FinishedReason::Success));
         let limit = Limit::ForDuration(Duration::from_millis(10));
-        let executor = Executor::new(DummyTask, decider, limit);
+        let mut executor = Executor::new(DummyTask, decider, limit, None);
 
         // Act
         let outcome = executor.execute().await.unwrap();
@@ -273,7 +289,7 @@ mod tests {
             failure_exit_status.clone(),
         )));
         let limit = Limit::ForDuration(Duration::from_millis(10));
-        let executor = Executor::new(DummyTask, decider, limit);
+        let mut executor = Executor::new(DummyTask, decider, limit, None);
 
         // Act
         let outcome = executor.execute().await.unwrap();
@@ -290,7 +306,7 @@ mod tests {
             failure_exit_status.clone(),
         )));
         let limit = Limit::ForDuration(Duration::from_millis(10));
-        let executor = Executor::new(DummyTask, decider, limit);
+        let mut executor = Executor::new(DummyTask, decider, limit, None);
 
         // Act
         let outcome = executor.execute().await.unwrap();
@@ -308,7 +324,8 @@ mod tests {
             failure_exit_status.clone(),
         )));
         let limit = Limit::ForDuration(Duration::from_millis(5));
-        let executor: Executor<DummyTask, TestDecider> = Executor::new(DummyTask, decider, limit);
+        let mut executor: Executor<DummyTask, TestDecider> =
+            Executor::new(DummyTask, decider, limit, None);
 
         // Act
         let outcome = executor.execute().await.unwrap();
@@ -335,7 +352,7 @@ mod tests {
         // Arrange
         let decider = TestDecider(Decision::Unfinished(UnfinishedReason::Timeout));
         let limit = Limit::ForDuration(tokio::time::Duration::from_millis(5));
-        let executor = Executor::new(DummyTask, decider, limit);
+        let mut executor = Executor::new(DummyTask, decider, limit, None);
 
         // Act
         let outcome = executor.execute().await.unwrap();
@@ -347,5 +364,29 @@ mod tests {
                 UnfinishedReason::Timeout
             ))
         );
+    }
+
+    // This test may become flaky if system load is high;
+    // feel free to delete or refactor this test if it becomes a problem
+    #[tokio::test]
+    async fn execute_retry_every() {
+        // Arrange
+        let number_of_times = 3;
+        let execution_interval = Duration::from_millis(10);
+        let min_expected_duration = execution_interval * (number_of_times - 1);
+        let max_expected_duration = execution_interval * number_of_times;
+        let limit = Limit::NumberOfTimes(number_of_times.into());
+
+        let decider = TestDecider(Decision::Unfinished(UnfinishedReason::Timeout));
+        let mut executor = Executor::new(DummyTask, decider, limit, Some(execution_interval));
+
+        // Act
+        let start = tokio::time::Instant::now();
+        executor.execute().await.unwrap();
+        let elapsed = start.elapsed();
+
+        // Assert
+        assert!(min_expected_duration < elapsed);
+        assert!(elapsed < max_expected_duration);
     }
 }
