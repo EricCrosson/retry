@@ -1,3 +1,11 @@
+# [1.2.0](https://github.com/EricCrosson/retry/compare/v1.1.0...v1.2.0) (2024-05-16)
+
+
+### Features
+
+* add `every` ([c484194](https://github.com/EricCrosson/retry/commit/c4841940cc0758c2668a0ec5975a6af5014b0a3e))
+* add `every` to cli ([56b743b](https://github.com/EricCrosson/retry/commit/56b743bccc13095bea7134416c564d17209ead71))
+
 # [1.1.0](https://github.com/EricCrosson/retry/compare/v1.0.73...v1.1.0) (2024-05-15)
 
 
