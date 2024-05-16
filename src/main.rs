@@ -27,7 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let task = Task::new(args.command, args.task_timeout);
     let decider = Decider::new(args.on_exit_code);
-    let executor = Executor::new(task, decider, args.up_to.into());
+    let mut executor = Executor::new(task, decider, args.up_to.into(), args.every);
     let retry_outcome = executor.execute().await?;
     Ok(match retry_outcome {
         ExecutionOutcome::Success => Ok(()),
