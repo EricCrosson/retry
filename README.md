@@ -10,8 +10,7 @@ It was written to make one-liners as readable and intuitive as possible.
 ## Use
 
 The "big idea" of **retry** is that it eliminates ambiguous inputs by accepting either the number of times to try a command or the total length of time to spend (re)trying it.
-
-For example:
+This information is expressed by the required `--up-to` argument:
 
 ```bash
 retry --up-to 5x npm install  # Retry for up to 5 times "npm install"
@@ -23,6 +22,13 @@ To constrain the total runtime of an individual attempt, use `--task-timeout`:
 ```bash
 retry --up-to 10m --task-timeout 15s -- zhu-li --do the-thing
 ```
+
+## Optional arguments
+
+| Argument name    | Description                                                                                        |
+| ---------------- | -------------------------------------------------------------------------------------------------- |
+| `--every`        | A constant duration to wait between attempts.                                                      |
+| `--on-exit-code` | Only retry when the specified command failed with this exit code. Can be specified multiple times. |
 
 ### Argument formats
 
