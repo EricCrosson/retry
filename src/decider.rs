@@ -121,19 +121,6 @@ mod tests {
 
     use super::*;
 
-    pub(crate) struct TestTask(TaskOutcome);
-
-    impl Runnable for TestTask {
-        // eval must be defined, but is unused
-        async fn eval(&self) -> std::io::Result<ExitStatus> {
-            Ok(ExitStatus::default())
-        }
-
-        async fn run(&self) -> std::io::Result<TaskOutcome> {
-            Ok(self.0)
-        }
-    }
-
     #[test]
     fn default_decider_success() {
         // Arrange
