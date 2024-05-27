@@ -12,6 +12,7 @@ use clap::Parser;
 mod cli;
 mod decider;
 mod executor;
+mod little_anyhow;
 mod task;
 
 use crate::cli::Cli;
@@ -22,7 +23,7 @@ use crate::task::Task;
 // Notable: https://docs.rs/retry/latest/retry/
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), little_anyhow::Error> {
     let args = Cli::parse();
 
     let task = Task::new(args.command, args.task_timeout);
@@ -31,16 +32,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let retry_outcome = executor.execute().await?;
     Ok(match retry_outcome {
         ExecutionOutcome::Success => Ok(()),
-        ExecutionOutcome::Failure(exit_status) => exit_status.exit_ok().map_err(Box::new),
-        ExecutionOutcome::Terminated(exit_status) => exit_status.exit_ok().map_err(Box::new),
+        ExecutionOutcome::Failure(exit_status) => exit_status.exit_ok(),
+        ExecutionOutcome::Terminated(exit_status) => exit_status.exit_ok(),
         ExecutionOutcome::Exhausted(exhaustion_reason) => match exhaustion_reason {
             ExhaustionReason::RetryTimesExceeded(unfinished_reason)
             | ExhaustionReason::RetryTimeoutExceeded(unfinished_reason) => {
                 match unfinished_reason {
-                    UnfinishedReason::Failure(exit_code) => exit_code.exit_ok().map_err(Box::new),
-                    UnfinishedReason::Timeout => {
-                        ExitStatus::from_raw(1).exit_ok().map_err(Box::new)
-                    }
+                    UnfinishedReason::Failure(exit_code) => exit_code.exit_ok(),
+                    UnfinishedReason::Timeout => ExitStatus::from_raw(1).exit_ok(),
                 }
             }
         },
