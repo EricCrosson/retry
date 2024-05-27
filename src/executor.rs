@@ -46,7 +46,7 @@ where
 }
 
 pub(crate) trait Executable {
-    async fn execute(&mut self) -> std::io::Result<ExecutionOutcome>;
+    async fn execute(&mut self) -> Result<(), ExecuteError>;
     async fn run_indefinitely(&mut self) -> std::io::Result<FinishedReason>;
 }
 
@@ -55,16 +55,23 @@ where
     T: Runnable,
     D: Decidable,
 {
-    async fn execute(&mut self) -> std::io::Result<ExecutionOutcome> {
+    async fn execute(&mut self) -> Result<(), ExecuteError> {
         let mut final_unfinished_reason = UnfinishedReason::Timeout;
-        Ok(match self.limit {
+
+        let create_err = |kind: ExecuteErrorKind| ExecuteError { kind };
+
+        match self.limit {
             Limit::NumberOfTimes(num_times) => {
                 for _ in 0..num_times {
                     self.tick().await;
-                    let task_outcome = self.task.run().await?;
+                    let task_outcome = self
+                        .task
+                        .run()
+                        .await
+                        .map_err(|err| create_err(ExecuteErrorKind::Spawn(err)))?;
                     let decision = self.decider.decide(task_outcome);
                     match decision {
-                        Decision::Finished(finished_reason) => return Ok(finished_reason.into()),
+                        Decision::Finished(finished_reason) => return finished_reason.into(),
                         Decision::Unfinished(unfinished_reason) => {
                             final_unfinished_reason = unfinished_reason;
                             continue;
@@ -72,22 +79,24 @@ where
                     }
                 }
                 // retry only up_to num_times
-                ExecutionOutcome::Exhausted(ExhaustionReason::RetryTimesExceeded(
-                    final_unfinished_reason,
-                ))
+                Err(create_err(ExecuteErrorKind::Exhausted(
+                    ExhaustionReason::RetryTimesExceeded(final_unfinished_reason),
+                )))
             }
             Limit::ForDuration(duration) => {
                 let task_result_or_timeout =
                     tokio::time::timeout(duration, self.run_indefinitely()).await;
                 match task_result_or_timeout {
-                    Ok(finished_reason) => finished_reason?.into(),
+                    Ok(finished_reason) => finished_reason
+                        .map_err(|err| create_err(ExecuteErrorKind::Spawn(err)))?
+                        .into(),
                     // retry only up_to duration exceeded
-                    Err(_timeout) => ExecutionOutcome::Exhausted(
+                    Err(_timeout) => Err(create_err(ExecuteErrorKind::Exhausted(
                         ExhaustionReason::RetryTimeoutExceeded(final_unfinished_reason),
-                    ),
+                    ))),
                 }
             }
-        })
+        }
     }
 
     async fn run_indefinitely(&mut self) -> std::io::Result<FinishedReason> {
@@ -106,26 +115,23 @@ where
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub(crate) enum ExecutionOutcome {
-    Success,                     // The command succeeded
-    Failure(ExitStatus), // The command failed and was not retried because the exit code was not in the retry_on_exit_codes set
-    Terminated(ExitStatus), // The command was terminated by a signal
-    Exhausted(ExhaustionReason), // The command was retried until the up_to limit
-}
-
-impl From<FinishedReason> for ExecutionOutcome {
+impl From<FinishedReason> for Result<(), ExecuteError> {
     fn from(finished_reason: FinishedReason) -> Self {
         match finished_reason {
-            FinishedReason::Success => ExecutionOutcome::Success,
-            FinishedReason::Terminated(exit_status) => ExecutionOutcome::Terminated(exit_status),
-            FinishedReason::Failure(exit_status) => ExecutionOutcome::Failure(exit_status),
+            FinishedReason::Success => Ok(()),
+            FinishedReason::Terminated(exit_status) => Err(ExecuteError {
+                kind: ExecuteErrorKind::Terminated(exit_status),
+            }),
+            FinishedReason::Failure(exit_status) => Err(ExecuteError {
+                kind: ExecuteErrorKind::Failure(exit_status),
+            }),
         }
     }
 }
 
+// FIXME: implementation bleed: this should not be public outside the crate
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub(crate) enum ExhaustionReason {
+pub enum ExhaustionReason {
     RetryTimesExceeded(UnfinishedReason),
     RetryTimeoutExceeded(UnfinishedReason),
 }
@@ -141,6 +147,75 @@ impl From<Retry> for Limit {
         match retry {
             Retry::ForDuration(duration) => Limit::ForDuration(duration),
             Retry::NumberOfTimes(num_times) => Limit::NumberOfTimes(num_times),
+        }
+    }
+}
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct ExecuteError {
+    pub kind: ExecuteErrorKind,
+}
+
+impl std::fmt::Display for ExecuteError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.kind {
+            ExecuteErrorKind::Spawn(_) => write!(f, "unable to spawn child process"),
+            ExecuteErrorKind::Failure(_) => {
+                write!(f, "command failed with an exit code that is not retryable")
+            }
+            ExecuteErrorKind::Terminated(_) => write!(f, "command terminated by a signal"),
+            ExecuteErrorKind::Exhausted(_) => {
+                write!(f, "command did not succeed within specified constraints")
+            }
+        }
+    }
+}
+
+impl std::error::Error for ExecuteError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match &self.kind {
+            ExecuteErrorKind::Spawn(err) => Some(err),
+            ExecuteErrorKind::Failure(_) => None,
+            ExecuteErrorKind::Terminated(_) => None,
+            ExecuteErrorKind::Exhausted(_) => None,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ExecuteErrorKind {
+    #[non_exhaustive]
+    Spawn(std::io::Error),
+    /// The command failed and was not retried because the exit code was not in the retry_on_exit_codes set.
+    #[non_exhaustive]
+    Failure(ExitStatus),
+    /// The command was terminated by a signal.
+    #[non_exhaustive]
+    Terminated(ExitStatus),
+    /// The command was retried until the up_to limit, and did not succeed.
+    #[non_exhaustive]
+    Exhausted(ExhaustionReason),
+}
+
+impl ExecuteErrorKind {
+    pub fn exit_code(&self) -> i32 {
+        match self {
+            ExecuteErrorKind::Spawn(_) => 1,
+            // SMELL: code() returns None when command was terminated by a
+            // signal, but we're handling that in the Terminated variant, so it
+            // seems that error case shouldn't be representable here?
+            ExecuteErrorKind::Failure(exit_status) => exit_status.code().unwrap_or(1),
+            ExecuteErrorKind::Terminated(exit_status) => exit_status.code().unwrap_or(1),
+            ExecuteErrorKind::Exhausted(exhaustion_reason) => match exhaustion_reason {
+                ExhaustionReason::RetryTimesExceeded(unfinished_reason)
+                | ExhaustionReason::RetryTimeoutExceeded(unfinished_reason) => {
+                    match unfinished_reason {
+                        UnfinishedReason::Failure(exit_code) => exit_code.code().unwrap_or(1),
+                        UnfinishedReason::Timeout => 1,
+                    }
+                }
+            },
         }
     }
 }
@@ -186,10 +261,10 @@ mod tests {
         let mut executor = Executor::new(DummyTask, decider, limit, None);
 
         // Act
-        let outcome = executor.execute().await.unwrap();
+        let outcome = executor.execute().await;
 
         // Assert
-        assert_eq!(outcome, ExecutionOutcome::Success);
+        assert!(outcome.is_ok());
     }
 
     #[tokio::test]
@@ -203,10 +278,15 @@ mod tests {
         let mut executor = Executor::new(DummyTask, decider, limit, None);
 
         // Act
-        let outcome = executor.execute().await.unwrap();
+        let outcome = executor.execute().await;
 
         // Assert
-        assert_eq!(outcome, ExecutionOutcome::Failure(failure_exit_status));
+        assert!(matches!(
+            outcome,
+            Err(ExecuteError {
+                kind: ExecuteErrorKind::Failure(_)
+            })
+        ));
     }
 
     #[tokio::test]
@@ -220,10 +300,15 @@ mod tests {
         let mut executor = Executor::new(DummyTask, decider, limit, None);
 
         // Act
-        let outcome = executor.execute().await.unwrap();
+        let outcome = executor.execute().await;
 
         // Assert
-        assert_eq!(outcome, ExecutionOutcome::Terminated(failure_exit_status));
+        assert!(matches!(
+            outcome,
+            Err(ExecuteError {
+                kind: ExecuteErrorKind::Terminated(_)
+            })
+        ));
     }
 
     #[tokio::test]
@@ -237,15 +322,17 @@ mod tests {
         let mut executor = Executor::new(DummyTask, decider, limit, None);
 
         // Act
-        let outcome = executor.execute().await.unwrap();
+        let outcome = executor.execute().await;
 
         // Assert
-        assert_eq!(
+        assert!(matches!(
             outcome,
-            ExecutionOutcome::Exhausted(ExhaustionReason::RetryTimesExceeded(
-                UnfinishedReason::Failure(failure_exit_status)
-            ))
-        );
+            Err(ExecuteError {
+                kind: ExecuteErrorKind::Exhausted(ExhaustionReason::RetryTimesExceeded(
+                    UnfinishedReason::Failure(_)
+                ))
+            })
+        ));
     }
 
     #[tokio::test]
@@ -256,15 +343,17 @@ mod tests {
         let mut executor = Executor::new(DummyTask, decider, limit, None);
 
         // Act
-        let outcome = executor.execute().await.unwrap();
+        let outcome = executor.execute().await;
 
         // Assert
-        assert_eq!(
+        assert!(matches!(
             outcome,
-            ExecutionOutcome::Exhausted(ExhaustionReason::RetryTimesExceeded(
-                UnfinishedReason::Timeout
-            ))
-        );
+            Err(ExecuteError {
+                kind: ExecuteErrorKind::Exhausted(ExhaustionReason::RetryTimesExceeded(
+                    UnfinishedReason::Timeout
+                ))
+            })
+        ));
     }
 
     #[tokio::test]
@@ -275,10 +364,10 @@ mod tests {
         let mut executor = Executor::new(DummyTask, decider, limit, None);
 
         // Act
-        let outcome = executor.execute().await.unwrap();
+        let outcome = executor.execute().await;
 
         // Assert
-        assert_eq!(outcome, ExecutionOutcome::Success);
+        assert!(outcome.is_ok());
     }
 
     #[tokio::test]
@@ -292,10 +381,15 @@ mod tests {
         let mut executor = Executor::new(DummyTask, decider, limit, None);
 
         // Act
-        let outcome = executor.execute().await.unwrap();
+        let outcome = executor.execute().await;
 
         // Assert
-        assert_eq!(outcome, ExecutionOutcome::Failure(failure_exit_status));
+        assert!(matches!(
+            outcome,
+            Err(ExecuteError {
+                kind: ExecuteErrorKind::Failure(_)
+            })
+        ));
     }
 
     #[tokio::test]
@@ -309,10 +403,15 @@ mod tests {
         let mut executor = Executor::new(DummyTask, decider, limit, None);
 
         // Act
-        let outcome = executor.execute().await.unwrap();
+        let outcome = executor.execute().await;
 
         // Assert
-        assert_eq!(outcome, ExecutionOutcome::Terminated(failure_exit_status));
+        assert!(matches!(
+            outcome,
+            Err(ExecuteError {
+                kind: ExecuteErrorKind::Terminated(_)
+            })
+        ));
     }
 
     #[tokio::test]
@@ -328,23 +427,27 @@ mod tests {
             Executor::new(DummyTask, decider, limit, None);
 
         // Act
-        let outcome = executor.execute().await.unwrap();
+        let outcome = executor.execute().await;
 
         // Assert
-        assert_eq!(
+        assert!(matches!(
             outcome,
-            ExecutionOutcome::Exhausted(ExhaustionReason::RetryTimeoutExceeded(
-                UnfinishedReason::Timeout
-            ))
-        );
+            Err(ExecuteError {
+                kind: ExecuteErrorKind::Exhausted(ExhaustionReason::RetryTimeoutExceeded(
+                    UnfinishedReason::Timeout
+                ))
+            })
+        ));
         // Because the task races with a duration, there is no way to return an
         // ExitStatus and so no way that it can ever be an UnfinishedReason::Failure
-        assert_ne!(
+        assert!(!matches!(
             outcome,
-            ExecutionOutcome::Exhausted(ExhaustionReason::RetryTimeoutExceeded(
-                UnfinishedReason::Failure(failure_exit_status)
-            ))
-        )
+            Err(ExecuteError {
+                kind: ExecuteErrorKind::Exhausted(ExhaustionReason::RetryTimeoutExceeded(
+                    UnfinishedReason::Failure(_)
+                ))
+            })
+        ))
     }
 
     #[tokio::test]
@@ -355,15 +458,17 @@ mod tests {
         let mut executor = Executor::new(DummyTask, decider, limit, None);
 
         // Act
-        let outcome = executor.execute().await.unwrap();
+        let outcome = executor.execute().await;
 
         // Assert
-        assert_eq!(
+        assert!(matches!(
             outcome,
-            ExecutionOutcome::Exhausted(ExhaustionReason::RetryTimeoutExceeded(
-                UnfinishedReason::Timeout
-            ))
-        );
+            Err(ExecuteError {
+                kind: ExecuteErrorKind::Exhausted(ExhaustionReason::RetryTimeoutExceeded(
+                    UnfinishedReason::Timeout
+                ))
+            })
+        ))
     }
 
     // This test may become flaky if system load is high;
@@ -382,10 +487,18 @@ mod tests {
 
         // Act
         let start = tokio::time::Instant::now();
-        executor.execute().await.unwrap();
+        let outcome = executor.execute().await;
         let elapsed = start.elapsed();
 
         // Assert
+        assert!(matches!(
+            outcome,
+            Err(ExecuteError {
+                kind: ExecuteErrorKind::Exhausted(ExhaustionReason::RetryTimesExceeded(
+                    UnfinishedReason::Timeout
+                ))
+            })
+        ));
         assert!(min_expected_duration < elapsed);
         assert!(elapsed < max_expected_duration);
     }

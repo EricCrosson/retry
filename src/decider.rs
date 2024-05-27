@@ -107,8 +107,9 @@ pub(crate) enum FinishedReason {
     Terminated(ExitStatus),
 }
 
+// FIXME: implementation bleed: this should not be public outside the crate
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum UnfinishedReason {
+pub enum UnfinishedReason {
     Failure(ExitStatus),
     Timeout,
 }

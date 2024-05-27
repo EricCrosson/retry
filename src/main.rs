@@ -4,9 +4,6 @@
 
 //! TODO: document me
 
-use std::os::unix::process::ExitStatusExt;
-use std::process::ExitStatus;
-
 use clap::Parser;
 
 mod cli;
@@ -16,8 +13,8 @@ mod little_anyhow;
 mod task;
 
 use crate::cli::Cli;
-use crate::decider::{Decider, UnfinishedReason};
-use crate::executor::{Executable, ExecutionOutcome, Executor, ExhaustionReason};
+use crate::decider::Decider;
+use crate::executor::{Executable, Executor};
 use crate::task::Task;
 
 // Notable: https://docs.rs/retry/latest/retry/
@@ -29,19 +26,5 @@ async fn main() -> Result<(), little_anyhow::Error> {
     let task = Task::new(args.command, args.task_timeout);
     let decider = Decider::new(args.on_exit_code);
     let mut executor = Executor::new(task, decider, args.up_to.into(), args.every);
-    let retry_outcome = executor.execute().await?;
-    Ok(match retry_outcome {
-        ExecutionOutcome::Success => Ok(()),
-        ExecutionOutcome::Failure(exit_status) => exit_status.exit_ok(),
-        ExecutionOutcome::Terminated(exit_status) => exit_status.exit_ok(),
-        ExecutionOutcome::Exhausted(exhaustion_reason) => match exhaustion_reason {
-            ExhaustionReason::RetryTimesExceeded(unfinished_reason)
-            | ExhaustionReason::RetryTimeoutExceeded(unfinished_reason) => {
-                match unfinished_reason {
-                    UnfinishedReason::Failure(exit_code) => exit_code.exit_ok(),
-                    UnfinishedReason::Timeout => ExitStatus::from_raw(1).exit_ok(),
-                }
-            }
-        },
-    }?)
+    Ok(executor.execute().await?)
 }
