@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/EricCrosson/retry/compare/v1.2.1...v1.3.0) (2024-05-27)
+
+
+### Features
+
+* print human-readable error messages ([376def2](https://github.com/EricCrosson/retry/commit/376def2b60c91e4195686aa9e661d85f1e2260ea))
+
 ## [1.2.1](https://github.com/EricCrosson/retry/compare/v1.2.0...v1.2.1) (2024-05-26)
 
 
