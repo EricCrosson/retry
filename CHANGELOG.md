@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/EricCrosson/retry/compare/v1.3.0...v1.3.1) (2024-05-27)
+
+
+### Bug Fixes
+
+* **build:** use stable Rust ([cf3d5d7](https://github.com/EricCrosson/retry/commit/cf3d5d72054c27077e45f5b501ae03baf1b42c8d))
+
 # [1.3.0](https://github.com/EricCrosson/retry/compare/v1.2.1...v1.3.0) (2024-05-27)
 
 
