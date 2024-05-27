@@ -4,7 +4,7 @@
   crane,
   fenix,
 }: let
-  fenix-channel = fenix.packages.${system}.latest;
+  fenix-channel = fenix.packages.${system}.stable;
   fenix-toolchain = fenix-channel.withComponents [
     "cargo"
     "clippy"

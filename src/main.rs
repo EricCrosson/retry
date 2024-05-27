@@ -1,6 +1,5 @@
 #![forbid(unsafe_code)]
 #![deny(warnings, missing_docs)]
-#![feature(exit_status_error)]
 
 //! TODO: document me
 
