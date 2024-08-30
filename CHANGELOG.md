@@ -1,3 +1,10 @@
+## [1.3.17](https://github.com/EricCrosson/retry/compare/v1.3.16...v1.3.17) (2024-08-30)
+
+
+### Bug Fixes
+
+* **deps:** update rust crate tokio to v1.40.0 ([50979f8](https://github.com/EricCrosson/retry/commit/50979f8df74735413916d1591742b8952e916885))
+
 ## [1.3.16](https://github.com/EricCrosson/retry/compare/v1.3.15...v1.3.16) (2024-08-17)
 
 
