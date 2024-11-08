@@ -22,7 +22,7 @@ name = "retry"
 [dependencies]
 clap = { version = "=4.5.20", features = ["cargo", "derive", "wrap_help"] }
 duration-string = { version = "=0.4.0", default-features = false }
-tokio = { version = "=1.41.0", features = ["full", "macros", "process", "time"] }
+tokio = { version = "=1.41.1", features = ["full", "macros", "process", "time"] }
 
 [profile.release]
 lto = true
