@@ -3,11 +3,6 @@
     nixpkgs.url = "github:nixos/nixpkgs";
     crane = {
       url = "github:ipetkov/crane";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    fenix = {
-      url = "github:nix-community/fenix";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
@@ -15,7 +10,6 @@
     self,
     nixpkgs,
     crane,
-    fenix,
   }: let
     forEachSystem = nixpkgs.lib.genAttrs [
       "aarch64-darwin"
@@ -26,7 +20,7 @@
   in {
     packages = forEachSystem (system: let
       craneDerivations = nixpkgs.legacyPackages.${system}.callPackage ./nix/default.nix {
-        inherit crane fenix;
+        inherit crane;
       };
     in {
       default = craneDerivations.myCrate;

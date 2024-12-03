@@ -3,11 +3,6 @@
     nixpkgs.url = "github:nixos/nixpkgs";
     crane = {
       url = "github:ipetkov/crane";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    fenix = {
-      url = "github:nix-community/fenix";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
     pre-commit-hooks = {
       url = "github:cachix/pre-commit-hooks.nix";
@@ -19,7 +14,6 @@
     self,
     nixpkgs,
     crane,
-    fenix,
     pre-commit-hooks,
   }: let
     forEachSystem = nixpkgs.lib.genAttrs [
@@ -31,7 +25,7 @@
   in {
     checks = forEachSystem (system: let
       pkgs = import nixpkgs {inherit system;};
-      craneDerivations = pkgs.callPackage ./default.nix {inherit crane fenix;};
+      craneDerivations = pkgs.callPackage ./default.nix {inherit crane;};
       pre-commit-check = pre-commit-hooks.lib.${system}.run {
         src = ../.;
         hooks = {
@@ -53,14 +47,10 @@
 
     devShells = forEachSystem (system: let
       pkgs = import nixpkgs {inherit system;};
-      craneDerivations = pkgs.callPackage ./default.nix {inherit crane fenix;};
+      craneDerivations = pkgs.callPackage ./default.nix {inherit crane;};
     in {
       default = pkgs.mkShell {
-        packages = with pkgs;
-          [
-            craneDerivations.fenix-toolchain
-          ]
-          ++ craneDerivations.commonArgs.nativeBuildInputs;
+        packages = craneDerivations.commonArgs.nativeBuildInputs;
 
         RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
 

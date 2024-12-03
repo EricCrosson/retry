@@ -2,19 +2,8 @@
   pkgs,
   system,
   crane,
-  fenix,
 }: let
-  fenix-channel = fenix.packages.${system}.stable;
-  fenix-toolchain = fenix-channel.withComponents [
-    "cargo"
-    "clippy"
-    "rust-analyzer"
-    "rust-src"
-    "rustc"
-    "rustfmt"
-  ];
-
-  craneLib = crane.lib.${system}.overrideToolchain fenix-toolchain;
+  craneLib = crane.mkLib pkgs;
 
   # Common derivation arguments used for all builds
   commonArgs = {
@@ -62,6 +51,5 @@ in {
     myCrate
     myCrateClippy
     myCrateCoverage
-    fenix-toolchain
     ;
 }

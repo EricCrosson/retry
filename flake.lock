@@ -1,53 +1,27 @@
 {
   "nodes": {
     "crane": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
       "locked": {
-        "lastModified": 1714864355,
-        "narHash": "sha256-uXNW6bapWFfkYIkK1EagydSrFMqycOYEDSq75GmUpjk=",
+        "lastModified": 1733016477,
+        "narHash": "sha256-Hh0khbqBeCtiNS0SJgqdWrQDem9WlPEc2KF5pAY+st0=",
         "owner": "ipetkov",
         "repo": "crane",
-        "rev": "442a7a6152f49b907e73206dc8e1f46a61e8e873",
+        "rev": "76d64e779e2fbaf172110038492343a8c4e29b55",
         "type": "github"
       },
       "original": {
         "owner": "ipetkov",
         "repo": "crane",
-        "type": "github"
-      }
-    },
-    "fenix": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ],
-        "rust-analyzer-src": "rust-analyzer-src"
-      },
-      "locked": {
-        "lastModified": 1715063087,
-        "narHash": "sha256-cktPkcCmJ2sR0V/FaWEuCWmKuGPbwoMltih/EfF0mXg=",
-        "owner": "nix-community",
-        "repo": "fenix",
-        "rev": "f8f16c1f2c83bea4e51e6522d988ec8bfcc8420e",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-community",
-        "repo": "fenix",
         "type": "github"
       }
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1715106818,
-        "narHash": "sha256-xG2K18DYVaG1VZduXoIn+vTSB7l6MDYCHoyiIM2ZJZI=",
+        "lastModified": 1733252166,
+        "narHash": "sha256-JjLgOLfjYzdAeK0GIHvIWhXmmP5BhSqCdEKWOGKzuPA=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "103ecdffe52ddf66e9c1c6ae2f1646ca2e9e0aa8",
+        "rev": "7cc48215b1c37d509092357a763149c252e249c3",
         "type": "github"
       },
       "original": {
@@ -59,25 +33,7 @@
     "root": {
       "inputs": {
         "crane": "crane",
-        "fenix": "fenix",
         "nixpkgs": "nixpkgs"
-      }
-    },
-    "rust-analyzer-src": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1714936835,
-        "narHash": "sha256-M+PpgfRMBfHo8Jb2ou/s3maAZbps0XnuHXQU9Hv9vL0=",
-        "owner": "rust-lang",
-        "repo": "rust-analyzer",
-        "rev": "c4618fe14d39992fbbb85c2d6cad028a232c13d2",
-        "type": "github"
-      },
-      "original": {
-        "owner": "rust-lang",
-        "ref": "nightly",
-        "repo": "rust-analyzer",
-        "type": "github"
       }
     }
   },
