@@ -1,3 +1,10 @@
+## [1.3.46](https://github.com/EricCrosson/retry/compare/v1.3.45...v1.3.46) (2025-05-11)
+
+
+### Bug Fixes
+
+* **deps:** update rust crate clap to v4.5.38 ([a9861f5](https://github.com/EricCrosson/retry/commit/a9861f505f0465e21c0feef2fbfd924fe0dd8968))
+
 ## [1.3.45](https://github.com/EricCrosson/retry/compare/v1.3.44...v1.3.45) (2025-05-07)
 
 
