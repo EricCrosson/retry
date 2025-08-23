@@ -1,3 +1,10 @@
+## [1.3.59](https://github.com/EricCrosson/retry/compare/v1.3.58...v1.3.59) (2025-08-23)
+
+
+### Bug Fixes
+
+* **deps:** update rust crate duration-string to v0.5.3 ([0d64533](https://github.com/EricCrosson/retry/commit/0d64533b8727333a6149a184e7c3a2570755307a))
+
 ## [1.3.58](https://github.com/EricCrosson/retry/compare/v1.3.57...v1.3.58) (2025-08-13)
 
 
