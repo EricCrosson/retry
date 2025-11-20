@@ -21,7 +21,7 @@ name = "retry"
 path = "src/main.rs"
 
 [dependencies]
-clap = { version = "=4.5.52", features = ["cargo", "derive", "wrap_help"] }
+clap = { version = "=4.5.53", features = ["cargo", "derive", "wrap_help"] }
 duration-string = { version = "=0.5.3", default-features = false }
 tokio = { version = "=1.48.0", features = ["full", "macros", "process", "time"] }
 
