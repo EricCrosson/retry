@@ -2,8 +2,15 @@
   pkgs,
   system,
   crane,
+  fenix,
 }: let
-  craneLib = crane.mkLib pkgs;
+  fenix-toolchain = fenix.packages.${system}.stable.withComponents [
+    "cargo"
+    "clippy"
+    "rustc"
+    "rustfmt"
+  ];
+  craneLib = (crane.mkLib pkgs).overrideToolchain (_: fenix-toolchain);
 
   # Common derivation arguments used for all builds
   commonArgs = {
