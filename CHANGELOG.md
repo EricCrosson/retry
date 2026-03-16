@@ -1,3 +1,16 @@
+# [1.4.0](https://github.com/EricCrosson/retry/compare/v1.3.76...v1.4.0) (2026-03-16)
+
+
+### Bug Fixes
+
+* **deps:** update rust crate clap to v4.6.0 ([cdd6d39](https://github.com/EricCrosson/retry/commit/cdd6d397faf80651f8bef8926a0231f673978f02))
+* **deps:** update rust crate tokio to v1.50.0 ([53d521f](https://github.com/EricCrosson/retry/commit/53d521f726acce9624fe5a6ddecb7cad8c6e6863))
+
+
+### Features
+
+* use fenix for Rust toolchain management ([620f4fb](https://github.com/EricCrosson/retry/commit/620f4fbca9873a4686e810f41f1da5e93d833daf))
+
 ## [1.3.76](https://github.com/EricCrosson/retry/compare/v1.3.75...v1.3.76) (2026-02-20)
 
 
