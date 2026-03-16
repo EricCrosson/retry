@@ -1,4 +1,7 @@
 {
+  nixConfig.extra-substituters = ["https://ericcrosson-retry.cachix.org"];
+  nixConfig.extra-trusted-public-keys = ["ericcrosson-retry.cachix.org-1:3l9PEQ/c6PDI+P+avNRPS40irPntuh9hldgjXMttWIs="];
+
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs";
     crane = {

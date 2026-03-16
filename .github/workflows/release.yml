@@ -17,3 +17,23 @@ jobs:
     uses: semantic-release-action/rust/.github/workflows/release-binary.yml@v5
     with:
       disable-semantic-release-cargo: true
+
+  cachix:
+    needs: release
+    strategy:
+      matrix:
+        os: [macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - uses: cachix/cachix-action@v15
+        with:
+          name: ericcrosson-retry
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+
+      - run: nix build
