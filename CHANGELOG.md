@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/EricCrosson/retry/compare/v1.4.0...v1.4.1) (2026-03-16)
+
+
+### Bug Fixes
+
+* **ci:** explicitly push binary to cachix after nix build ([13b1d51](https://github.com/EricCrosson/retry/commit/13b1d51ded039b1e5695b7d60c5cb82ccd189b84))
+
 # [1.4.0](https://github.com/EricCrosson/retry/compare/v1.3.76...v1.4.0) (2026-03-16)
 
 
